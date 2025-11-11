@@ -44,15 +44,20 @@ class MRZDetector:
         
     def initialize_ocr(self, gpu: bool = False):
         """
-        Initialize EasyOCR reader
+        Initialize EasyOCR reader for MRZ (uppercase letters, numbers, and '<' only)
         
         Args:
             gpu: Whether to use GPU for OCR (requires CUDA)
         """
         if self.ocr_reader is None:
-            print("Initializing EasyOCR reader...")
-            self.ocr_reader = easyocr.Reader(['en'], gpu=gpu)
-            print("✓ EasyOCR reader initialized")
+            print("Initializing EasyOCR reader for MRZ...")
+            # MRZ only contains: A-Z, 0-9, and '<'
+            self.ocr_reader = easyocr.Reader(
+                ['en'], 
+                gpu=gpu,
+                allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<'
+            )
+            print("✓ EasyOCR reader initialized (MRZ charset: A-Z, 0-9, <)")
     
     def detect_mrz(self, image_path: Union[str, Path, np.ndarray]) -> List[Dict]:
         """
