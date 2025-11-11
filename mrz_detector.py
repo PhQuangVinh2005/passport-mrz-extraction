@@ -252,37 +252,26 @@ class MRZDetector:
             print(f"[DEBUG] Saved crop to: {debug_crop_path}")
             
             # Apply OCR on merged region
-            # PaddleOCR returns: [[[bbox, (text, confidence)], ...]]
+            # PaddleOCR can return different formats depending on version/settings
             print(f"[DEBUG] Running PaddleOCR...")
             ocr_results = self.ocr_reader.ocr(mrz_crop)
             
             # Debug: Print raw OCR results
             print(f"[DEBUG] Raw OCR results type: {type(ocr_results)}")
-            print(f"[DEBUG] Raw OCR results: {ocr_results}")
-            if ocr_results:
-                print(f"[DEBUG] OCR results length: {len(ocr_results)}")
-                if ocr_results[0]:
-                    print(f"[DEBUG] First element type: {type(ocr_results[0])}")
-                    print(f"[DEBUG] First element length: {len(ocr_results[0])}")
-                    if len(ocr_results[0]) > 0:
-                        print(f"[DEBUG] First line: {ocr_results[0][0]}")
-                else:
-                    print(f"[DEBUG] ocr_results[0] is None or empty!")
-            else:
-                print(f"[DEBUG] ocr_results is None or empty!")
+            print(f"[DEBUG] OCR results length: {len(ocr_results) if ocr_results else 0}")
             
             # Extract text and clean for MRZ format
             ocr_texts = []
-            if ocr_results and ocr_results[0]:
-                for line in ocr_results[0]:
-                    if len(line) == 2:
-                        ocr_bbox, text_info = line
-                        if isinstance(text_info, tuple):
-                            text, ocr_conf = text_info
-                        else:
-                            text = str(text_info)
-                            ocr_conf = 0.0
-                        
+            if ocr_results and len(ocr_results) > 0:
+                # Check if result is dictionary format (newer PaddleOCR)
+                if isinstance(ocr_results[0], dict) and 'rec_texts' in ocr_results[0]:
+                    print(f"[DEBUG] Using dictionary format parsing")
+                    result_dict = ocr_results[0]
+                    texts = result_dict.get('rec_texts', [])
+                    scores = result_dict.get('rec_scores', [])
+                    
+                    for i, text in enumerate(texts):
+                        ocr_conf = scores[i] if i < len(scores) else 0.0
                         print(f"[DEBUG] Original text: '{text}' | Confidence: {ocr_conf:.4f}")
                         
                         # Clean text: uppercase, keep only valid MRZ characters
@@ -294,6 +283,31 @@ class MRZDetector:
                                 'text': cleaned_text,
                                 'confidence': ocr_conf
                             })
+                # Standard list format (older PaddleOCR)
+                elif ocr_results[0] and isinstance(ocr_results[0], list):
+                    print(f"[DEBUG] Using list format parsing")
+                    for line in ocr_results[0]:
+                        if len(line) == 2:
+                            ocr_bbox, text_info = line
+                            if isinstance(text_info, tuple):
+                                text, ocr_conf = text_info
+                            else:
+                                text = str(text_info)
+                                ocr_conf = 0.0
+                            
+                            print(f"[DEBUG] Original text: '{text}' | Confidence: {ocr_conf:.4f}")
+                            
+                            # Clean text: uppercase, keep only valid MRZ characters
+                            cleaned_text = self._clean_mrz_text(text)
+                            print(f"[DEBUG] Cleaned text: '{cleaned_text}'")
+                            
+                            if cleaned_text:  # Only add non-empty text
+                                ocr_texts.append({
+                                    'text': cleaned_text,
+                                    'confidence': ocr_conf
+                                })
+                else:
+                    print(f"[DEBUG] Unknown OCR result format: {type(ocr_results[0])}")
             
             # Combine all text
             full_text = ' '.join([item['text'] for item in ocr_texts])
@@ -325,30 +339,58 @@ class MRZDetector:
                 print(f"[DEBUG] Crop shape: {mrz_crop.shape}")
                 
                 # Apply OCR
-                # PaddleOCR returns: [[[bbox, (text, confidence)], ...]]
+                # PaddleOCR can return different formats depending on version/settings
                 print(f"[DEBUG] Running PaddleOCR on detection {idx + 1}...")
                 ocr_results = self.ocr_reader.ocr(mrz_crop)
-                print(f"[DEBUG] OCR results for detection {idx + 1}: {ocr_results}")
+                print(f"[DEBUG] OCR results type: {type(ocr_results)}")
+                print(f"[DEBUG] OCR results length: {len(ocr_results) if ocr_results else 0}")
                 
                 # Extract text and clean for MRZ format
                 ocr_texts = []
-                if ocr_results and ocr_results[0]:
-                    for line in ocr_results[0]:
-                        if len(line) == 2:
-                            ocr_bbox, text_info = line
-                            if isinstance(text_info, tuple):
-                                text, ocr_conf = text_info
-                            else:
-                                text = str(text_info)
-                                ocr_conf = 0.0
+                if ocr_results and len(ocr_results) > 0:
+                    # Check if result is dictionary format (newer PaddleOCR)
+                    if isinstance(ocr_results[0], dict) and 'rec_texts' in ocr_results[0]:
+                        print(f"[DEBUG] Using dictionary format parsing")
+                        result_dict = ocr_results[0]
+                        texts = result_dict.get('rec_texts', [])
+                        scores = result_dict.get('rec_scores', [])
+                        
+                        for i, text in enumerate(texts):
+                            ocr_conf = scores[i] if i < len(scores) else 0.0
+                            print(f"[DEBUG] Original text: '{text}' | Confidence: {ocr_conf:.4f}")
                             
                             # Clean text: uppercase, keep only valid MRZ characters
                             cleaned_text = self._clean_mrz_text(text)
+                            print(f"[DEBUG] Cleaned text: '{cleaned_text}'")
+                            
                             if cleaned_text:  # Only add non-empty text
                                 ocr_texts.append({
                                     'text': cleaned_text,
                                     'confidence': ocr_conf
                                 })
+                    # Standard list format (older PaddleOCR)
+                    elif ocr_results[0] and isinstance(ocr_results[0], list):
+                        print(f"[DEBUG] Using list format parsing")
+                        for line in ocr_results[0]:
+                            if len(line) == 2:
+                                ocr_bbox, text_info = line
+                                if isinstance(text_info, tuple):
+                                    text, ocr_conf = text_info
+                                else:
+                                    text = str(text_info)
+                                    ocr_conf = 0.0
+                                
+                                print(f"[DEBUG] Original text: '{text}' | Confidence: {ocr_conf:.4f}")
+                                
+                                # Clean text: uppercase, keep only valid MRZ characters
+                                cleaned_text = self._clean_mrz_text(text)
+                                print(f"[DEBUG] Cleaned text: '{cleaned_text}'")
+                                
+                                if cleaned_text:  # Only add non-empty text
+                                    ocr_texts.append({
+                                        'text': cleaned_text,
+                                        'confidence': ocr_conf
+                                    })
                 
                 # Combine all text
                 full_text = ' '.join([item['text'] for item in ocr_texts])
