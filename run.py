@@ -42,6 +42,11 @@ def main():
         default="inference_results",
         help="Directory to save outputs (default: inference_results)"
     )
+    parser.add_argument(
+        "--merge-boxes",
+        action="store_true",
+        help="Merge all detected bounding boxes into one (useful for 2-line MRZ)"
+    )
     
     args = parser.parse_args()
     
@@ -64,6 +69,7 @@ def main():
     print(f"Image: {image_path}")
     print(f"Model: {model_path}")
     print(f"Confidence: {args.confidence}")
+    print(f"Merge boxes: {args.merge_boxes}")
     print("="*60 + "\n")
     
     try:
@@ -76,7 +82,7 @@ def main():
         
         # Process image
         print(f"Processing image: {image_path.name}")
-        result = detector.extract_text_from_mrz(str(image_path))
+        result = detector.extract_text_from_mrz(str(image_path), merge_boxes=args.merge_boxes)
         
         # Display results
         print("\n" + "="*60)
@@ -89,9 +95,16 @@ def main():
             print("   Try lowering the confidence threshold with --confidence")
         else:
             for mrz in result['mrz_regions']:
-                print(f"\n📍 MRZ Region {mrz['detection_id']}:")
-                print(f"   Detection confidence: {mrz['detection_confidence']:.4f} ({mrz['detection_confidence']*100:.2f}%)")
-                print(f"   Bounding box: {mrz['bbox']}")
+                if 'original_bboxes' in mrz:
+                    print(f"\n📍 Merged MRZ Region:")
+                    print(f"   Original detections: {len(mrz['original_bboxes'])}")
+                    print(f"   Original bboxes: {mrz['original_bboxes']}")
+                    print(f"   Merged bbox: {mrz['bbox']}")
+                    print(f"   Average confidence: {mrz['detection_confidence']:.4f} ({mrz['detection_confidence']*100:.2f}%)")
+                else:
+                    print(f"\n📍 MRZ Region {mrz['detection_id']}:")
+                    print(f"   Detection confidence: {mrz['detection_confidence']:.4f} ({mrz['detection_confidence']*100:.2f}%)")
+                    print(f"   Bounding box: {mrz['bbox']}")
                 print(f"\n📝 Extracted Text:")
                 print(f"   {mrz['full_text']}")
                 
@@ -109,7 +122,8 @@ def main():
                 image = cv2.imread(str(image_path))
                 
                 for mrz in result['mrz_regions']:
-                    x1, y1, x2, y2 = mrz['expanded_bbox']
+                    # Use the appropriate bbox
+                    x1, y1, x2, y2 = mrz.get('expanded_bbox', mrz['bbox'])
                     crop = image[y1:y2, x1:x2]
                     
                     crop_filename = f"{image_path.stem}_mrz_{mrz['detection_id']}.png"

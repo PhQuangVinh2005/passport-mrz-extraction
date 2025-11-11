@@ -135,6 +135,40 @@ def example_6_only_detection():
         print(f"Image not found: {image_path}")
 
 
+def example_7_merge_boxes():
+    """Example 7: Merge multiple detections for 2-line MRZ"""
+    print("\n" + "="*60)
+    print("EXAMPLE 7: Merge Bounding Boxes (2-line MRZ)")
+    print("="*60)
+    
+    detector = MRZDetector()
+    
+    image_path = "sample.jpg"
+    if Path(image_path).exists():
+        # Without merging
+        print("\n🔹 Without merging (separate boxes):")
+        result_separate = detector.extract_text_from_mrz(image_path, merge_boxes=False)
+        print(f"  Number of detections: {result_separate['num_detections']}")
+        for mrz in result_separate['mrz_regions']:
+            print(f"  Region {mrz['detection_id']}: {mrz['full_text']}")
+        
+        # With merging
+        print("\n🔸 With merging (combined box):")
+        result_merged = detector.extract_text_from_mrz(image_path, merge_boxes=True)
+        print(f"  Number of detections: {result_merged['num_detections']}")
+        for mrz in result_merged['mrz_regions']:
+            if 'original_bboxes' in mrz:
+                print(f"  Merged from {len(mrz['original_bboxes'])} boxes")
+            print(f"  Text: {mrz['full_text']}")
+        
+        print("\n💡 Benefits of merging:")
+        print("  ✓ EasyOCR processes both MRZ lines together")
+        print("  ✓ Better context for OCR accuracy")
+        print("  ✓ No limitation by individual YOLO detections")
+    else:
+        print(f"Image not found: {image_path}")
+
+
 if __name__ == "__main__":
     print("\n" + "="*60)
     print("MRZ DETECTOR - USAGE EXAMPLES")
@@ -148,6 +182,7 @@ if __name__ == "__main__":
         example_4_save_crops()
         example_5_batch_processing()
         example_6_only_detection()
+        example_7_merge_boxes()
         
         print("\n" + "="*60)
         print("All examples completed!")
