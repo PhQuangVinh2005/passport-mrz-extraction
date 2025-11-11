@@ -231,11 +231,13 @@ class MRZDetector:
             # Apply OCR on merged region
             ocr_results = self.ocr_reader.readtext(mrz_crop)
             
-            # Extract text
+            # Extract text and clean for MRZ format
             ocr_texts = []
             for (ocr_bbox, text, ocr_conf) in ocr_results:
+                # Clean text: uppercase, keep only valid MRZ characters
+                cleaned_text = self._clean_mrz_text(text)
                 ocr_texts.append({
-                    'text': text,
+                    'text': cleaned_text,
                     'confidence': ocr_conf
                 })
             
@@ -266,11 +268,13 @@ class MRZDetector:
                 # Apply OCR
                 ocr_results = self.ocr_reader.readtext(mrz_crop)
                 
-                # Extract text
+                # Extract text and clean for MRZ format
                 ocr_texts = []
                 for (ocr_bbox, text, ocr_conf) in ocr_results:
+                    # Clean text: uppercase, keep only valid MRZ characters
+                    cleaned_text = self._clean_mrz_text(text)
                     ocr_texts.append({
-                        'text': text,
+                        'text': cleaned_text,
                         'confidence': ocr_conf
                     })
                 
