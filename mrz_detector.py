@@ -239,6 +239,16 @@ class MRZDetector:
             # PaddleOCR returns: [[[bbox, (text, confidence)], ...]]
             ocr_results = self.ocr_reader.ocr(mrz_crop)
             
+            # Debug: Print raw OCR results
+            print(f"\n[DEBUG] Raw OCR results type: {type(ocr_results)}")
+            if ocr_results:
+                print(f"[DEBUG] OCR results length: {len(ocr_results)}")
+                if ocr_results[0]:
+                    print(f"[DEBUG] First element type: {type(ocr_results[0])}")
+                    print(f"[DEBUG] First element length: {len(ocr_results[0])}")
+                    if len(ocr_results[0]) > 0:
+                        print(f"[DEBUG] First line: {ocr_results[0][0]}")
+            
             # Extract text and clean for MRZ format
             ocr_texts = []
             if ocr_results and ocr_results[0]:
@@ -251,8 +261,12 @@ class MRZDetector:
                             text = str(text_info)
                             ocr_conf = 0.0
                         
+                        print(f"[DEBUG] Original text: '{text}' | Confidence: {ocr_conf:.4f}")
+                        
                         # Clean text: uppercase, keep only valid MRZ characters
                         cleaned_text = self._clean_mrz_text(text)
+                        print(f"[DEBUG] Cleaned text: '{cleaned_text}'")
+                        
                         if cleaned_text:  # Only add non-empty text
                             ocr_texts.append({
                                 'text': cleaned_text,
