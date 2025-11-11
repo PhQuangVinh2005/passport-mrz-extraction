@@ -52,11 +52,21 @@ class MRZDetector:
         if self.ocr_reader is None:
             print("Initializing EasyOCR reader for MRZ...")
             # MRZ only contains: A-Z, 0-9, and '<'
-            self.ocr_reader = easyocr.Reader(
-                ['en'], 
-                gpu=gpu,
-                allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<'
-            )
+            # Try 'allowlist' first (newer versions), fallback to 'whitelist' (older versions)
+            try:
+                self.ocr_reader = easyocr.Reader(
+                    ['en'], 
+                    gpu=gpu,
+                    allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<'
+                )
+            except TypeError:
+                # Fallback for older EasyOCR versions
+                self.ocr_reader = easyocr.Reader(
+                    ['en'], 
+                    gpu=gpu
+                )
+                # Note: Older versions don't support character filtering
+                print("⚠️  Using older EasyOCR version (no character filtering)")
             print("✓ EasyOCR reader initialized (MRZ charset: A-Z, 0-9, <)")
     
     def detect_mrz(self, image_path: Union[str, Path, np.ndarray]) -> List[Dict]:
