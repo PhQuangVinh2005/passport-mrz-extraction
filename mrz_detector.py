@@ -235,12 +235,24 @@ class MRZDetector:
             x1, y1, x2, y2 = merged_bbox
             mrz_crop = image[y1:y2, x1:x2]
             
+            # Debug: Print crop information
+            print(f"\n[DEBUG] Merged bbox: {merged_bbox}")
+            print(f"[DEBUG] Crop shape: {mrz_crop.shape}")
+            print(f"[DEBUG] Crop size: {mrz_crop.shape[1]}x{mrz_crop.shape[0]} (WxH)")
+            
+            # Save crop for debugging
+            debug_crop_path = 'debug_merged_crop.png'
+            cv2.imwrite(debug_crop_path, mrz_crop)
+            print(f"[DEBUG] Saved crop to: {debug_crop_path}")
+            
             # Apply OCR on merged region
             # PaddleOCR returns: [[[bbox, (text, confidence)], ...]]
+            print(f"[DEBUG] Running PaddleOCR...")
             ocr_results = self.ocr_reader.ocr(mrz_crop)
             
             # Debug: Print raw OCR results
-            print(f"\n[DEBUG] Raw OCR results type: {type(ocr_results)}")
+            print(f"[DEBUG] Raw OCR results type: {type(ocr_results)}")
+            print(f"[DEBUG] Raw OCR results: {ocr_results}")
             if ocr_results:
                 print(f"[DEBUG] OCR results length: {len(ocr_results)}")
                 if ocr_results[0]:
@@ -248,6 +260,10 @@ class MRZDetector:
                     print(f"[DEBUG] First element length: {len(ocr_results[0])}")
                     if len(ocr_results[0]) > 0:
                         print(f"[DEBUG] First line: {ocr_results[0][0]}")
+                else:
+                    print(f"[DEBUG] ocr_results[0] is None or empty!")
+            else:
+                print(f"[DEBUG] ocr_results is None or empty!")
             
             # Extract text and clean for MRZ format
             ocr_texts = []
@@ -297,9 +313,16 @@ class MRZDetector:
                 # Crop MRZ region
                 mrz_crop = image[y1:y2, x1:x2]
                 
+                # Debug: Print crop information
+                print(f"\n[DEBUG] Detection {idx + 1} bbox: {bbox}")
+                print(f"[DEBUG] Expanded bbox: {expanded_bbox}")
+                print(f"[DEBUG] Crop shape: {mrz_crop.shape}")
+                
                 # Apply OCR
                 # PaddleOCR returns: [[[bbox, (text, confidence)], ...]]
+                print(f"[DEBUG] Running PaddleOCR on detection {idx + 1}...")
                 ocr_results = self.ocr_reader.ocr(mrz_crop)
+                print(f"[DEBUG] OCR results for detection {idx + 1}: {ocr_results}")
                 
                 # Extract text and clean for MRZ format
                 ocr_texts = []
