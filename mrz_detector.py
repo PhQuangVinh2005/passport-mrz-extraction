@@ -137,6 +137,26 @@ class MRZDetector:
         
         return [new_x1, new_y1, new_x2, new_y2]
     
+    def _clean_mrz_text(self, text: str) -> str:
+        """
+        Clean OCR text to contain only valid MRZ characters.
+        MRZ format only allows: uppercase letters (A-Z), digits (0-9), and '<' character.
+        
+        Args:
+            text: Raw OCR text
+            
+        Returns:
+            Cleaned text with only valid MRZ characters
+        """
+        # Convert to uppercase
+        text = text.upper()
+        
+        # Keep only valid MRZ characters: A-Z, 0-9, and '<'
+        valid_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<')
+        cleaned = ''.join(char for char in text if char in valid_chars)
+        
+        return cleaned
+    
     def merge_bboxes(self, bboxes: List[List[int]], image_shape: Tuple[int, int],
                      expand_ratio: float = 0.2) -> List[int]:
         """
