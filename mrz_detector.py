@@ -49,11 +49,17 @@ class MRZDetector:
         """
         if self.ocr_reader is None:
             print("Initializing PaddleOCR reader for MRZ...")
-            # Initialize PaddleOCR with angle classification for better accuracy
-            self.ocr_reader = PaddleOCR(use_angle_cls=True, lang='en')
+            # Initialize PaddleOCR with minimal preprocessing
+            # Disable document preprocessing to avoid unwanted rotation
+            # MRZ text is already horizontal in cropped regions
+            self.ocr_reader = PaddleOCR(
+                use_angle_cls=False,  # Disable angle classification (MRZ is horizontal)
+                use_doc_preprocessor=False,  # Disable document preprocessing (no rotation needed)
+                lang='en'
+            )
             print("✓ PaddleOCR reader initialized")
             print("  - Language: English")
-            print("  - Angle classification: Enabled")
+            print("  - Document preprocessing: Disabled (prevents rotation)")
             print("  - Text cleaning: Automatic (A-Z, 0-9, <)")
     
     def detect_mrz(self, image_path: Union[str, Path, np.ndarray]) -> List[Dict]:
