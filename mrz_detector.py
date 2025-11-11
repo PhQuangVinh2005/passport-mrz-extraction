@@ -95,14 +95,15 @@ class MRZDetector:
         return detections
     
     def expand_bbox(self, bbox: List[int], image_shape: Tuple[int, int], 
-                    expand_ratio: float = 0.2) -> List[int]:
+                    expand_ratio: float = 0.5) -> List[int]:
         """
-        Expand bounding box by a ratio while keeping within image bounds
+        Expand bounding box by a ratio while keeping within image bounds.
+        Uses higher expansion for better OCR, especially for narrow MRZ regions.
         
         Args:
             bbox: Bounding box [x1, y1, x2, y2]
             image_shape: Image shape (height, width)
-            expand_ratio: Expansion ratio (0.2 = 20% padding)
+            expand_ratio: Expansion ratio (0.5 = 50% padding, recommended for MRZ)
             
         Returns:
             Expanded bounding box [x1, y1, x2, y2]
@@ -115,6 +116,11 @@ class MRZDetector:
         height = y2 - y1
         expand_w = int(width * expand_ratio / 2)
         expand_h = int(height * expand_ratio / 2)
+        
+        # Ensure minimum padding (at least 10 pixels on each side for OCR)
+        MIN_PADDING = 10
+        expand_w = max(expand_w, MIN_PADDING)
+        expand_h = max(expand_h, MIN_PADDING)
         
         # Apply expansion with bounds checking
         new_x1 = max(0, x1 - expand_w)
@@ -145,7 +151,7 @@ class MRZDetector:
         return cleaned
     
     def merge_bboxes(self, bboxes: List[List[int]], image_shape: Tuple[int, int],
-                     expand_ratio: float = 0.2) -> List[int]:
+                     expand_ratio: float = 0.5) -> List[int]:
         """
         Merge multiple bounding boxes into one large box that contains all of them.
         This is useful for MRZ with 2 lines detected separately by YOLO.
@@ -155,7 +161,7 @@ class MRZDetector:
         Args:
             bboxes: List of bounding boxes [[x1, y1, x2, y2], ...]
             image_shape: Image shape (height, width, channels)
-            expand_ratio: Additional expansion ratio after merging (0.2 = 20%)
+            expand_ratio: Additional expansion ratio after merging (0.5 = 50% padding)
             
         Returns:
             Merged and expanded bounding box [x1, y1, x2, y2]
@@ -182,14 +188,14 @@ class MRZDetector:
         return expanded_merged
     
     def extract_text_from_mrz(self, image_path: Union[str, Path], 
-                             expand_ratio: float = 0.2,
+                             expand_ratio: float = 0.5,
                              merge_boxes: bool = False) -> Dict:
         """
         Detect MRZ and extract text using OCR
         
         Args:
             image_path: Path to passport image
-            expand_ratio: Ratio to expand bbox for better OCR
+            expand_ratio: Ratio to expand bbox for better OCR (default 0.5 = 50% padding)
             merge_boxes: If True, merge all detected bboxes into one large box (useful for 2-line MRZ)
             
         Returns:
