@@ -7,8 +7,9 @@ Simple Python project to detect Machine Readable Zone (MRZ) in passport images a
 ## Features
 
 - ✅ Detect MRZ regions using YOLOv8
-- ✅ Extract text from MRZ using EasyOCR
+- ✅ Extract text from MRZ using PaddleOCR
 - ✅ **Merge multiple detections for 2-line MRZ** (Better OCR accuracy)
+- ✅ Automatic text cleaning to MRZ format (A-Z, 0-9, <)
 - ✅ Simple command-line interface
 - ✅ No Docker or complex setup required
 - ✅ Save cropped MRZ regions
@@ -126,7 +127,7 @@ Options:
 **Solution:** Merge them into one large box for better OCR
 
 **Benefits:**
-- ✅ EasyOCR processes both MRZ lines together with full context
+- ✅ PaddleOCR processes both MRZ lines together with full context
 - ✅ Better OCR accuracy and text extraction quality
 - ✅ Not limited by individual YOLO detection boundaries
 - ✅ Single unified text output instead of separate fragments
@@ -531,8 +532,8 @@ The project uses these main packages:
 
 - **ultralytics** - YOLOv8 for object detection
 - **opencv-python** - Image processing
-- **easyocr** - Optical Character Recognition
-- **torch** - Deep learning framework
+- **paddlepaddle** - PaddlePaddle deep learning framework
+- **paddleocr** - Optical Character Recognition
 - **numpy** - Numerical computing
 - **gdown** - Google Drive downloader
 
@@ -543,7 +544,7 @@ All dependencies are automatically installed by `setup.py`.
 ## FAQ
 
 ### Q: Should I always use `--merge-boxes`?
-**A:** Yes, for 2-line MRZ passports. It significantly improves OCR accuracy by giving EasyOCR full context of both lines together.
+**A:** Yes, for 2-line MRZ passports. It significantly improves OCR accuracy by giving PaddleOCR full context of both lines together.
 
 ### Q: What's the difference between bbox and expanded_bbox?
 **A:** 
@@ -619,8 +620,8 @@ For questions or issues, please open an issue on GitHub.
 ## Acknowledgments
 
 - **YOLOv8** by Ultralytics - Object detection framework
-- **EasyOCR** by JaidedAI - OCR library
-- **PyTorch** - Deep learning framework
+- **PaddleOCR** by PaddlePaddle - OCR library
+- **PaddlePaddle** - Deep learning framework
 
 ---
 

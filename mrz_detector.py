@@ -8,7 +8,7 @@ import numpy as np
 from pathlib import Path
 from typing import List, Dict, Tuple, Union
 from ultralytics import YOLO
-import easyocr
+from paddleocr import PaddleOCR
 
 
 class MRZDetector:
@@ -42,32 +42,19 @@ class MRZDetector:
         self.model = YOLO(str(self.model_path))
         print("✓ YOLO model loaded successfully")
         
-    def initialize_ocr(self, gpu: bool = False):
+    def initialize_ocr(self):
         """
-        Initialize EasyOCR reader for MRZ (uppercase letters, numbers, and '<' only)
-        
-        Args:
-            gpu: Whether to use GPU for OCR (requires CUDA)
+        Initialize PaddleOCR reader for MRZ text extraction.
+        Text will be automatically cleaned to MRZ format (A-Z, 0-9, <) after OCR.
         """
         if self.ocr_reader is None:
-            print("Initializing EasyOCR reader for MRZ...")
-            # MRZ only contains: A-Z, 0-9, and '<'
-            # Try 'allowlist' first (newer versions), fallback to 'whitelist' (older versions)
-            try:
-                self.ocr_reader = easyocr.Reader(
-                    ['en'], 
-                    gpu=gpu,
-                    allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<'
-                )
-            except TypeError:
-                # Fallback for older EasyOCR versions
-                self.ocr_reader = easyocr.Reader(
-                    ['en'], 
-                    gpu=gpu
-                )
-                # Note: Older versions don't support character filtering
-                print("⚠️  Using older EasyOCR version (no character filtering)")
-            print("✓ EasyOCR reader initialized (MRZ charset: A-Z, 0-9, <)")
+            print("Initializing PaddleOCR reader for MRZ...")
+            # Initialize PaddleOCR with angle classification for better accuracy
+            self.ocr_reader = PaddleOCR(use_angle_cls=True, lang='en')
+            print("✓ PaddleOCR reader initialized")
+            print("  - Language: English")
+            print("  - Angle classification: Enabled")
+            print("  - Text cleaning: Automatic (A-Z, 0-9, <)")
     
     def detect_mrz(self, image_path: Union[str, Path, np.ndarray]) -> List[Dict]:
         """
@@ -249,17 +236,28 @@ class MRZDetector:
             mrz_crop = image[y1:y2, x1:x2]
             
             # Apply OCR on merged region
-            ocr_results = self.ocr_reader.readtext(mrz_crop)
+            # PaddleOCR returns: [[[bbox, (text, confidence)], ...]]
+            ocr_results = self.ocr_reader.ocr(mrz_crop)
             
             # Extract text and clean for MRZ format
             ocr_texts = []
-            for (ocr_bbox, text, ocr_conf) in ocr_results:
-                # Clean text: uppercase, keep only valid MRZ characters
-                cleaned_text = self._clean_mrz_text(text)
-                ocr_texts.append({
-                    'text': cleaned_text,
-                    'confidence': ocr_conf
-                })
+            if ocr_results and ocr_results[0]:
+                for line in ocr_results[0]:
+                    if len(line) == 2:
+                        ocr_bbox, text_info = line
+                        if isinstance(text_info, tuple):
+                            text, ocr_conf = text_info
+                        else:
+                            text = str(text_info)
+                            ocr_conf = 0.0
+                        
+                        # Clean text: uppercase, keep only valid MRZ characters
+                        cleaned_text = self._clean_mrz_text(text)
+                        if cleaned_text:  # Only add non-empty text
+                            ocr_texts.append({
+                                'text': cleaned_text,
+                                'confidence': ocr_conf
+                            })
             
             # Combine all text
             full_text = ' '.join([item['text'] for item in ocr_texts])
@@ -286,17 +284,28 @@ class MRZDetector:
                 mrz_crop = image[y1:y2, x1:x2]
                 
                 # Apply OCR
-                ocr_results = self.ocr_reader.readtext(mrz_crop)
+                # PaddleOCR returns: [[[bbox, (text, confidence)], ...]]
+                ocr_results = self.ocr_reader.ocr(mrz_crop)
                 
                 # Extract text and clean for MRZ format
                 ocr_texts = []
-                for (ocr_bbox, text, ocr_conf) in ocr_results:
-                    # Clean text: uppercase, keep only valid MRZ characters
-                    cleaned_text = self._clean_mrz_text(text)
-                    ocr_texts.append({
-                        'text': cleaned_text,
-                        'confidence': ocr_conf
-                    })
+                if ocr_results and ocr_results[0]:
+                    for line in ocr_results[0]:
+                        if len(line) == 2:
+                            ocr_bbox, text_info = line
+                            if isinstance(text_info, tuple):
+                                text, ocr_conf = text_info
+                            else:
+                                text = str(text_info)
+                                ocr_conf = 0.0
+                            
+                            # Clean text: uppercase, keep only valid MRZ characters
+                            cleaned_text = self._clean_mrz_text(text)
+                            if cleaned_text:  # Only add non-empty text
+                                ocr_texts.append({
+                                    'text': cleaned_text,
+                                    'confidence': ocr_conf
+                                })
                 
                 # Combine all text
                 full_text = ' '.join([item['text'] for item in ocr_texts])
