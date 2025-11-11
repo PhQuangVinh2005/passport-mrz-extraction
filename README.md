@@ -22,8 +22,8 @@ Simple Python project to detect Machine Readable Zone (MRZ) in passport images a
 ### Step 1: Clone repository
 
 ```bash
-git clone <your-repo-url>
-cd for_github_repo
+git clone https://github.com/PhQuangVinh2005/passport-mrz-extraction.git
+cd passport-mrz-extraction
 ```
 
 ### Step 2: Run setup

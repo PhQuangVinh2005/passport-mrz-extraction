@@ -30,7 +30,6 @@ weights/
 # Output files
 inference_results/
 mrz_crops/
-*.txt
 
 # IDEs
 .vscode/
